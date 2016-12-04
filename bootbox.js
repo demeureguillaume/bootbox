@@ -726,7 +726,7 @@
       }
       
       if (opts.placeholder) {
-        inputs[field].attr("placeholder", options.placeholder);
+        inputs[field].attr("placeholder", opts.placeholder);
       }
 
       if (opts.readonly) {
