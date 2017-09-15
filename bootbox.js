@@ -78,7 +78,10 @@
       number:
         "<input class='bootbox-input bootbox-input-number form-control' autocomplete=off type='number' />",
       password:
-        "<input class='bootbox-input bootbox-input-password form-control' autocomplete='off' type='password' />"
+        "<input class='bootbox-input bootbox-input-password form-control' autocomplete='off' type='password' />",
+      radio:
+        "<div class='radio'><label><input class='bootbox-input bootbox-input-radio' type='radio' /></label></div>"
+
     }
   };
 
@@ -420,7 +423,7 @@
     options.buttons.confirm.callback = function() {
       var value;
 
-      if (options.inputType === "checkbox") {
+      if (options.inputType === "checkbox" || options.inputType === "radio") {
         value = input.find("input:checked").map(function() {
           return $(this).val();
         }).get();
@@ -451,6 +454,15 @@
 
     switch (options.inputType) {
       case "text":
+        if (options.pattern) {
+            if (options.pattern.regex === undefined || options.pattern.helper === undefined) {
+              throw new Error("given pattern in wrong format");
+            }
+
+            inputs[field].attr('pattern', opts.pattern.regex);
+            inputs[field].attr('title', opts.pattern.helper);
+        }
+        break;
       case "textarea":
       case "email":
       case "date":
@@ -534,6 +546,33 @@
           });
 
           input.append(checkbox);
+        });
+        break;
+      case "radio":
+        inputOptions = options.options || [{value: undefined, text: undefined}];
+
+        if (!inputOptions.length) {
+          throw new Error("radio field requires options");
+        }
+
+        if (!inputOptions[0].value || !inputOptions[0].text) {
+          throw new Error("radio options given in wrong format");
+        }
+
+        inputs[field] = $("<div/>");
+
+        each(inputOptions, function(_, option) {
+          var radio = $(templates.inputs[options.type]);
+
+          radio.find("input").attr("value", options.value);
+          radio.find("input").attr("name", options.group);
+          radio.find("label").append(options.text);
+
+          if (options.value === option.value) {
+            radio.find("input").prop("checked", true);
+          }
+
+          inputs[field].append(radio);
         });
         break;
     }
@@ -645,6 +684,9 @@
               values[field] = inputs[field].find("input").is(":checked");
             }
             break;
+          case "radio":
+              values[field] = inputs[field].find("input:checked").val();
+            break;
         }
       });
 
@@ -666,11 +708,6 @@
 
     each(options.fields,function(field, opts) {
 
-      if(opts.type == 'hidden'){
-        return;
-      }
-
-
       if (!templates.inputs[opts.type]) {
         throw new Error("invalid prompt type: " + opts.type);
       }
@@ -679,8 +716,20 @@
 
       switch (opts.type) {
         case "text":
+          if (opts.pattern) {
+              if (opts.pattern.regex === undefined || opts.pattern.helper === undefined) {
+                throw new Error("given options in wrong format");
+              }
+
+              inputs[field].attr('pattern', opts.pattern.regex);
+              inputs[field].attr('title', opts.pattern.helper);
+          }
+          break;
         case "textarea":
         case "email":
+        case "hidden":
+          inputs[field].val(opts.value);
+          break;
         case "password":
           inputs[field].val(opts.value);
           break;
@@ -722,7 +771,7 @@
           });
 
           // safe to set a select's value as per a normal input
-          inputs[field].val(options.value);
+          inputs[field].val(opts.value);
           break;
 
         case "checkbox":
@@ -755,8 +804,35 @@
             inputs[field].append(checkbox);
           });
           break;
+        case "radio":
+          inputOptions = opts.options || [{value: undefined, text: undefined}];
+
+          if (!inputOptions.length) {
+            throw new Error("radio field requires options");
+          }
+
+          if (!inputOptions[0].value || !inputOptions[0].text) {
+            throw new Error("radio options given in wrong format");
+          }
+
+          inputs[field] = $("<div/>");
+
+          each(inputOptions, function(_, option) {
+            var radio = $(templates.inputs[opts.type]);
+
+            radio.find("input").attr("value", option.value);
+            radio.find("input").attr("name", opts.group);
+            radio.find("label").append(option.text);
+
+            if (opts.value === option.value) {
+              radio.find("input").prop("checked", true);
+            }
+
+            inputs[field].append(radio);
+          });
+          break;
       }
-      
+
       if (opts.placeholder) {
         inputs[field].attr("placeholder", opts.placeholder);
       }
@@ -776,7 +852,6 @@
       if (opts.style) {
           inputs[field].css(opts.style);
       }
-
 
     });
 
